@@ -17,6 +17,9 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import Pose
 from mpmath import *
 from sympy import *
+import numpy as np
+
+
 
 
 def handle_calculate_IK(req):
@@ -97,6 +100,18 @@ def handle_calculate_IK(req):
                            [                   0,                   0,            0,               1]])
             T6_G = T6_G.subs(s)
 
+            # Correction between definition of gripper link in URDF VS DH convention
+            R_z = Matrix([[ cos(pi),    -sin(pi),   0,   0],
+                          [ sin(pi),     cos(pi),   0,   0],
+                          [          0,              0,   1,   0],
+                          [          0,              0,   0,   1]])
+
+            R_y = Matrix([[ cos(-pi/2),    0,   sin(-pi/2),    0],
+                          [             0,    1,               0,    0],
+                          [-sin(-pi/2),    0,   cos(-pi/2),    0],
+                          [          0,       0,               0,    1]])
+
+            R_corr = simplify(R_z * R_y)
             
             # Extract end-effector position and orientation from request
 	    # px,py,pz = end-effector position
@@ -113,14 +128,39 @@ def handle_calculate_IK(req):
 
             #Homogeneous transform from base_link to end-effector
             T0_6 = simplify(T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6)
+            Ttotal = simplify(T0_6 * T6_G * R_corr)
             #Rotation matrix from base_link to gripper_link
             R0_6 = T0_6[0:3,0:3]
             #Gripper position
             P = Matrix([[px],[py],[pz]])
             #Wrist center position
-            WC = simplify(P - simplify(R0_6*Matrix([[0],[0],[d7]])))
+            WC = simplify(P - simplify(R0_6 * Matrix([[0],[0],[d7]])))
             print(WC)
-#### TODO
+            WC_x = WC[0,0]
+            WC_y = WC[1,0]
+            WC_z = WC[2,0]
+            print(WC_x, WC_y, WC_z)
+            #theta1
+            theta1 = atan2(WC_y, WC_x)
+            #Use the formula
+            L1 = a2**2
+            L2 = a3**2 + d4**2
+            Y = WC_z - d1
+            X = sqrt(WC_x**2 + WC_y**2) - a1
+            alpha = acos((L1**2+L2**2-X**2-Y**2)/(2*L1*L2))   #??
+            #one solution
+            theta3 =  pi - atan2(Y, X)
+            theta2 = atan2(Y, X) - atan2(L2*sin(theta3), L1+L2*cos(theta3))
+            theta1.evalf(subs=s)
+            theta2.evalf(subs=s)
+            theta3.evalf(subs=s)
+            theta4 = 0
+            theta5 = 0
+            theta6 = 0
+#            #another solution
+#            theta3_b = pi + atan2(Y, X)
+#            theta2_b = atan2(Y, X) - atan2(L2*sin(theta3_b), L1+L2*cos(theta3_b))
+
 
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
