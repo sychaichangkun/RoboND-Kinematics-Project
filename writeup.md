@@ -32,32 +32,48 @@ I run forward_kinematics demo and change the joint angle using the joint state p
 
 
 #### 2. Using the DH parameter table you derived earlier, create individual transformation matrices about each joint. In addition, also generate a generalized homogeneous transform between base_link and gripper_link using only end-effector(gripper) pose.
-As is mentioned in the lesson, the DH params can built as follows.
+
+![Kinematics analysis](./pic5.png)
+Kinematics analysis
+
+So the DH params can be built as follows.
 
 Links | alpha(i-1) | a(i-1) | d(i) | theta(i)
 --- | --- | --- | --- | ---
 0->1 | 0 | 0 |  0.75 | 0
-1->2 | - pi/2 | 0.35 | 0 | -pi/2 + q2
+1->2 | - pi/2 | 0.55 | 0 | -pi/2 + q2
 2->3 | 0 | 1.25 | 0 | 0
 3->4 |  - pi/2 | -0.054 | 1.5 | 0
 4->5 | pi/2 | 0 | 0 | 0
 5->6 | - pi/2 | 0 | 0 | 0
 6->EE | 0 | 0 | 0.303 | 0
 
+The params can be obtained according to the urdf file which only describe the position and rotation between two links.
+
+Transform Matrices is as follows.
+![Transform Matrix](./pic6.png)
+![Transform Matrix2](./pic7.png)
+
+
 
 #### 3. Decouple Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so derive the equations to calculate all individual joint angles.
 Extract end-effector position and orientation from request, that is
 px,py,pz and roll, pitch, yaw.
-Then Geometric IK method is used to calculate the joint angles.
-R_roll,R_pitch and R_yaw are built and R0_6 calculated.
+
+![rpy](./pic8.jpg)
 
 So the wrist center(wx,wy,wz) can be derived from the end-effector position and R0_6.
 
 theta1 = atan2(wy, wx) and theta2 and theta3 can be calcucated by
-theta2 = pi/2-theta2_2-theta2_1, theta3 = pi/2 - theta3_2-theta3_1.
+
+theta2 = pi/2-theta2_2-theta2_1,
+
+theta3 = pi/2 - theta3_2-theta3_1.
 
 theta4=atan2(new_R3_6[2,2],-new_R3_6[0,2])
+
 theta5=atan2(sin_theta5, new_R3_6[1,2])
+
 theta6=atan2(-new_R3_6[1,1],new_R3_6[1,0])
 
 ![run demo](./pic3.png)
@@ -66,6 +82,7 @@ theta6=atan2(-new_R3_6[1,1],new_R3_6[1,0])
 ### Project Implementation
 
 #### 1. Fill in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. Your code must guide the robot to successfully complete 8/10 pick and place cycles. Briefly discuss the code you implemented and your results.
+The trajectory was drawn correctly , and the arm followed it.
 Here is the main implementation of my code.
 It can successfully pick 8 out of 10 objects, while sometimes reaches the pick place but fails to hold the object tightly.
 ```python
